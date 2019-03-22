@@ -1,12 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
-project(application)
+get_filename_component(PROJECT_NAME "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
+project(${PROJECT_NAME})
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
-add_executable(application main.cpp)
+include_directories(include)
+aux_source_directory(src APP_SRC_LIST)
 
+add_executable(${PROJECT_NAME} ${APP_SRC_LIST})
 
-include_directories(${CMAKE_SOURCE_DIR})
-target_link_libraries(application framework)
+target_include_directories(${PROJECT_NAME} PRIVATE ${WORKSPACE_INCLUDE_PATH})
 
-set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_BINARY_DIR}/bin)
+find_package(OpenGL REQUIRED)
+target_link_libraries(${PROJECT_NAME} OpenGL::GL)
+
+target_link_libraries(${PROJECT_NAME} glad)
+target_link_libraries(${PROJECT_NAME} glfw)
+
