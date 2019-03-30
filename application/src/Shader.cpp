@@ -96,33 +96,6 @@ void Shader::use() {
     glUseProgram(ID);
 }
 
-void Shader::setBool(const std::string &name, bool value) const {
-    glUniform1i(glGetUniformLocation(ID, name.c_str()), (int) value);
-}
-
-void Shader::setInt(const std::string &name, int value) const {
-    glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
-}
-
-void Shader::setFloat(const std::string &name, float value) const {
-    glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
-}
-
-void Shader::VertexAttribPointer(const std::string &attribute,
-                                 GLint size,
-                                 GLenum type,
-                                 GLboolean normalized,
-                                 GLsizei stride,
-                                 const void *pointer) {
-    // Specify the layout of the vertex data
-    GLint posAttrib = glGetAttribLocation(this->ID, attribute.c_str());
-    if (-1 == posAttrib) {
-        std::cout << "WARNING::attribute variable " << attribute << " is not active\n" << std::endl;
-    }
-    glVertexAttribPointer(static_cast<GLuint>(posAttrib), size, type, normalized, stride, pointer);
-    glEnableVertexAttribArray(static_cast<GLuint>(posAttrib));
-}
-
 void Shader::checkShaderCompile(unsigned int shader, const char *exInfo) {
     int success;
     int info_len;
@@ -151,3 +124,33 @@ void Shader::checkProgramLink(unsigned int program) {
     }
 }
 
+void Shader::setBool(const std::string &name, bool value) const {
+    glUniform1i(glGetUniformLocation(ID, name.c_str()), (int) value);
+}
+
+void Shader::setInt(const std::string &name, int value) const {
+    glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+}
+
+void Shader::setFloat(const std::string &name, float value) const {
+    glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+}
+
+void Shader::VertexAttribPointer(const std::string &attribute,
+                                 GLint size,
+                                 GLenum type,
+                                 GLboolean normalized,
+                                 GLsizei stride,
+                                 const void *pointer) {
+    // Specify the layout of the vertex data
+    GLint posAttrib = glGetAttribLocation(this->ID, attribute.c_str());
+    if (-1 == posAttrib) {
+        std::cout << "WARNING::attribute variable " << attribute << " is not active\n" << std::endl;
+    }
+    glVertexAttribPointer(static_cast<GLuint>(posAttrib), size, type, normalized, stride, pointer);
+    glEnableVertexAttribArray(static_cast<GLuint>(posAttrib));
+}
+
+void Shader::setMat4(const std::string &name, float *pValue) const {
+    glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, pValue);
+}

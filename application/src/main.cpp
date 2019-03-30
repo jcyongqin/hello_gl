@@ -12,9 +12,11 @@
 
 #include <GLFW/glfw3.h>
 #include "Shader.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "Controller.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+
+#include <stb_image.h>
 
 
 static GLuint pos_location;
@@ -30,8 +32,8 @@ static const GLfloat g_uv_buffer_data[] = {0
 
 };
 
-static float screen_width = 0;
-static float screen_height = 0;
+static float screen_width = 800;
+static float screen_height = 600;
 static GLuint VBO_pos = 0;
 static GLuint VBO_color = 0;
 static GLuint VAO = 0;
@@ -77,7 +79,7 @@ int main() {
 //    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 //    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-    GLFWwindow *window = glfwCreateWindow(1024, 768, "OpenGL", nullptr, nullptr); // Windowed
+    GLFWwindow *window = glfwCreateWindow(1200, 900, "OpenGL", nullptr, nullptr); // Windowed
     if (!window) {
         fprintf(stderr, "Window or context creation failed\n");
     }
@@ -87,65 +89,163 @@ int main() {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+    glfwSwapInterval(GLFW_TRUE);
     // 设置ViewPort
     glfwSetWindowSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, key_callback);
+
     // ----------------------------- RESOURCES ----------------------------- //
 
-    // Create Vertex Array Object
-    GLuint vao;
-//    glGenVertexArrays(1, &vao);
-//    glBindVertexArray(vao);
+    // Vertics Data
+    // An array of 3 vectors which represents 3 vertices
+    static const GLfloat g_vertex_buffer_data[] = {
+            -1.0f, 1.0f, -1.0f,
+            -1.0f, -1.0f, -1.0f,
+            1.0f, 1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
 
-    // Create a Vertex Buffer Object and copy the vertex data to it
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-//    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            1.0f, 1.0f, 1.0f,
+            1.0f, -1.0f, 1.0f,
+            -1.0f, 1.0f, 1.0f,
+            -1.0f, -1.0f, 1.0f,
+    };
+    static const GLuint g_element_buffer_data[] = {
+            0, 2, 3,
+            0, 3, 1,
+            6, 0, 1,
+            6, 1, 7,
+            4, 2, 0,
+            4, 0, 6,
+            5, 3, 2,
+            5, 2, 4,
+            7, 1, 3,
+            7, 3, 5,
+            4, 6, 7,
+            4, 7, 5,
 
-    float vertices[] = {
-            // Vertex   // Color
-            0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-            0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
-            -0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-
-            0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-            -0.5f, 0.5, 0.0f, 0.0f, 1.0f,
-            0.5, 0.5f, 0.0f, 1.0f, 0.0f,
     };
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    static const GLfloat g_color_buffer_data[] = {
+            0.1f, 0.1f, 0.1f,
+            0.1f, 0.9f, 0.1f,
+            0.9f, 0.1f, 0.1f,
+            0.9f, 0.9f, 0.1f,
+            0.1f, 0.1f, 0.9f,
+            0.1f, 0.9f, 0.9f,
+            0.9f, 0.1f, 0.9f,
+            0.9f, 0.9f, 0.9f,
+    };
+
 
     // Create and compile the vertex shader
     Shader program("res/triangle.vs.glsl", "res/triangle.fs.glsl");
-    program.VertexAttribPointer("position", 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
-    program.VertexAttribPointer("color", 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) (2 * sizeof(float)));
     program.use();
 
-    glClearColor(0.2f, 0.5f, 0.8f, 1.0f);
+    // Create Vertex Array Object
+    GLuint VertexArrayID;
+    glGenVertexArrays(1, &VertexArrayID);
+    glBindVertexArray(VertexArrayID);
 
+    // Create a Element Buffer Object and copy the vertex data to it
+    GLuint elementBuffer;
+    glGenBuffers(1, &elementBuffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_element_buffer_data), g_element_buffer_data, GL_STATIC_DRAW);
+
+    // Create a Vertex Buffer Object and copy the vertex data to it
+    GLuint vertexBuffer;
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+    program.VertexAttribPointer("position", 3, GL_FLOAT, GL_FALSE, 0, (void *) nullptr);
+
+    // Create a Color Buffer Object and copy the vertex data to it
+    GLuint colorBuffer;
+    glGenBuffers(1, &colorBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
+    program.VertexAttribPointer("color", 3, GL_FLOAT, GL_FALSE, 0, (void *) nullptr);
+
+    // load texture
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+// 为当前绑定的纹理对象设置环绕、过滤方式
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+// 加载并生成纹理
+    int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char *data = stbi_load("res/container.jpg", &width, &height, &nrChannels, 0);
+    if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+//        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+
+    double lastTime = glfwGetTime();
+    int nbFrames = 0;
+    Controller ctrler(window);
+
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glClearDepth(1.0);
+    // 开启深度测试
+    glEnable(GL_DEPTH_TEST);
+    // Cull triangles which normal is not towards the camera
+    //glEnable(GL_CULL_FACE);
     // ---------------------------- RENDERING ------------------------------ //
     while (!glfwWindowShouldClose(window)) {
-        // Clear the screen to black
-        glClear(GL_COLOR_BUFFER_BIT);
+        ctrler.update();
 
+        // Clear the color buffer and depth buffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+        glm::mat4 Projection = glm::perspective(glm::radians(45.0f), (float) screen_width / (float) screen_height,
+                                                0.1f, 100.0f);
+        // Or, for an ortho camera :
+        //glm::mat4 Projection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.0f, 100.0f); // In world coordinates
+
+        // Camera matrix
+        glm::mat4 View = glm::lookAt(
+                glm::vec3(2, 2, 2), // Camera is at (4,3,3), in World Space
+                glm::vec3(0, 0, 0), // and looks at the origin
+                glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+        );
+        View = ctrler.getViewMatrix();
+
+        // Model matrix : an identity matrix (model will be at the origin)
+        glm::mat4 Model = glm::mat4(1.0f);
+        // Our ModelViewProjection : multiplication of our 3 matrices
+        glm::mat4 mvp = Projection * View * Model; // Remember, matrix multiplication is the other way around
+
+        // Trans "MVP" uniform to GLSL
+        program.setMat4("MVP", &mvp[0][0]);
+
+        // Bind VAO
+        glBindVertexArray(VertexArrayID);
         // Draw a triangle from the 3 vertices
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawElements(GL_TRIANGLES, sizeof(g_element_buffer_data) / sizeof(GLuint),
+                       GL_UNSIGNED_INT, nullptr);
 
         // Swap buffers and poll window events
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-            glfwSetWindowShouldClose(window, GL_TRUE);
+        // Measure speed
+        double currentTime = glfwGetTime();
+        nbFrames++;
+        if (currentTime - lastTime >= 0.5) { // If last prinf() was more than 1 sec ago
+            // printf and reset timer
+            printf("%d fps\n", nbFrames);
+            nbFrames = 0;
+            lastTime += 1.0;
+        }
     }
-
-    // ---------------------------- CLEARING ------------------------------ //
-    // Delete allocated resources
-//    glDeleteProgram(shaderProgram);
-
-    glDeleteBuffers(1, &vbo);
-//    glDeleteVertexArrays(1, &vao);
 
     // ---------------------------- TERMINATE ----------------------------- //
     // Terminate GLFW
@@ -153,42 +253,6 @@ int main() {
     return 0;
 }
 
-
-void start() {
-    // 设置深蓝色清屏
-    glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
-
-    // 生成并绑定 VAO
-//    glGenVertexArrays(1, &VAO);
-//    glBindVertexArray(VAO);
-
-    // 生成并绑定VBO
-    glGenBuffers(1, &VBO_pos);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_pos);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // 声明顶点属性绑定
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-//    glGenBuffers(1, &VBOcolor);
-//    glBindBuffer(GL_ARRAY_BUFFER, VBOcolor);
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data, GL_STATIC_DRAW);
-
-    // 创建着色器
-    ShaderProgram = glCreateProgram();
-//    GLuint vs_shader_obj = compile_shader(GL_VERTEX_SHADER, vertexSource);
-//    GLuint fs_shader_obj = compile_shader(GL_FRAGMENT_SHADER, fragmentSource);
-
-//    ShaderProgram = link_shader(ShaderProgram, vs_shader_obj, fs_shader_obj);
-    if (ShaderProgram == 0) {
-        fprintf(stderr, "Shader create fail!");
-        exit(1);
-    }
-    glValidateProgram(ShaderProgram);
-    glUseProgram(ShaderProgram);
-    pos_location = static_cast<GLuint>(glGetAttribLocation(ShaderProgram, "aPos"));
-
-}
 
 void update() {
     //第一步：创建模型观察投影（MVP）矩阵。任何要渲染的模型都要做这一步。
@@ -258,59 +322,3 @@ void render(GLFWwindow *window) {
 
 }
 
-// 从源码创建shader object
-GLuint compile_shader(GLenum shaderType, const char *shaderSource) {
-    GLuint shader = glCreateShader(shaderType);
-    if (shader == 0) {
-        printf("create shader fail,:shader type %d\n", shaderType);
-        glDeleteShader(shader);
-        return 0;
-    }
-    const char *shaderCode = shaderSource;
-    if (shaderCode == nullptr) {
-        return 0;
-    }
-
-    glShaderSource(shader, 1, &shaderCode, nullptr);
-    glCompileShader(shader);
-
-    GLint compileResult = GL_TRUE;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &compileResult);
-    if (compileResult == GL_FALSE) {
-        char szLog[4096];
-        GLsizei logLen = 0;
-//        glGetInfoLogARB(shader, sizeof(szLog), &logLen, szLog);
-        //glGetShaderInfoLog(shader, 1024, &logLen, szLog);
-        printf("Compile Shader(%04X) fail error log: %s \nshader code:\n%s\n", shaderType, szLog, shaderCode);
-        glDeleteShader(shader);
-        shader = 0;
-    }
-    return shader;
-}
-
-GLuint link_shader(GLuint programe, GLuint vs_shader, GLuint fs_shader) {
-    if (programe == 0) {
-        printf_s("着色器程序不存在\n");
-        return 0;
-    }
-    if (vs_shader == 0 || fs_shader == 0) {
-        printf_s("着色器对象不存在\n");
-        return 0;
-    }
-    glAttachShader(programe, vs_shader);
-    glAttachShader(programe, fs_shader);
-
-    glLinkProgram(programe);
-    glValidateProgram(programe);
-    GLint linkResult;
-    glGetProgramiv(programe, GL_LINK_STATUS, &linkResult);
-    if (linkResult == 0) {
-        char szLog[1024];
-        GLsizei logLen = 0;
-        glGetProgramInfoLog(programe, sizeof(szLog), &logLen, szLog);
-        fprintf(stderr, "Link Shader fail error log: '%s' \n", szLog);
-        return 0;
-    }
-
-    return programe;
-}

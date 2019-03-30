@@ -34,6 +34,8 @@ public:
 
     void setFloat(const std::string &name, float value) const;
 
+    void setMat4(const std::string &name, float* pValue) const;
+
 private:
     void checkShaderCompile(unsigned int shader, const char *exInfo);
 
