@@ -15,11 +15,10 @@
 
 class Shader {
 public:
-    // 程序ID
-    unsigned int ID;
-
     // 构造器读取并构建着色器
     Shader(const std::string &vertexPath, const std::string &fragmentPath);
+
+    ~Shader();
 
     // 使用/激活程序
     void use();
@@ -34,6 +33,15 @@ public:
     void setInt(const std::string &name, int value) const;
 
     void setFloat(const std::string &name, float value) const;
+
+private:
+    void checkShaderCompile(unsigned int shader, const char *exInfo);
+
+    void checkProgramLink(unsigned int program);
+
+public:
+    // 程序ID
+    unsigned int ID;
 };
 
 

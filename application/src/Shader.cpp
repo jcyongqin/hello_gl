@@ -9,77 +9,88 @@
 using namespace std;
 
 Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath) {
-// 1. 从文件路径中获取顶点/片段着色器
-    std::string vertexCode;
-    std::string fragmentCode;
-    std::ifstream vShaderFile;
-    std::ifstream fShaderFile;
+//======== Shader program ========
+    ID = glCreateProgram();
+
+//======== Vertex shader ========
+    unsigned int vShader;       // shader id
+    std::string vShaderCode;    // shader code
+    char *pvShaderCode = nullptr;
+    std::ifstream vShaderFile;  // shader file
     // 保证ifstream对象可以抛出异常：
     vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+    // 读取Shader file
     try {
         // 打开文件
         vShaderFile.open(vertexPath);
-        fShaderFile.open(fragmentPath);
-        std::stringstream vShaderStream, fShaderStream;
+        std::stringstream ShaderStream;
         // 读取文件的缓冲内容到数据流中
-        vShaderStream << vShaderFile.rdbuf();
-        fShaderStream << fShaderFile.rdbuf();
+        ShaderStream << vShaderFile.rdbuf();
         // 关闭文件处理器
         vShaderFile.close();
-        fShaderFile.close();
         // 转换数据流到string
-        vertexCode = vShaderStream.str();
-        fragmentCode = fShaderStream.str();
+        vShaderCode = ShaderStream.str();
+        pvShaderCode = const_cast<char *>(vShaderCode.c_str());
     }
     catch (std::ifstream::failure &e) {
-        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+        std::cerr << "ERROR: Shader file read failed" << std::endl;
     }
-    const char *vShaderCode = vertexCode.c_str();
-    const char *fShaderCode = fragmentCode.c_str();
-    // 2. 编译着色器
-    unsigned int vertex, fragment;
-    int success;
-    char infoLog[512];
 
-    // 顶点着色器
-    vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vShaderCode, NULL);
-    glCompileShader(vertex);
-    // 打印编译错误（如果有的话）
-    glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    };
+    // 编译Shader
+    vShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vShader, 1, &pvShaderCode, nullptr);
+    glCompileShader(vShader);
+    checkShaderCompile(vShader, "Vertex shader");
 
-    // 片段着色器
-    fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &fShaderCode, NULL);
-    glCompileShader(fragment);
-    // 打印编译错误（如果有的话）
-    glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragment, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    };
+    // Link shader
+    glAttachShader(ID, vShader);
+    glDeleteShader(vShader);
 
-    // 着色器程序
-    ID = glCreateProgram();
-    glAttachShader(ID, vertex);
-    glAttachShader(ID, fragment);
+//======== Fragment shader ========
+    unsigned int fShader;       // shader id
+    std::string fShaderCode;    // shader code
+    char *pfShaderCode = nullptr;
+    std::ifstream fShaderFile;  // shader file
+    // 保证ifstream对象可以抛出异常：
+    fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+    // 读取Shader file
+    try {
+        // 打开文件
+        fShaderFile.open(fragmentPath);
+        std::stringstream ShaderStream;
+        // 读取文件的缓冲内容到数据流中
+        ShaderStream << fShaderFile.rdbuf();
+        // 关闭文件处理器
+        fShaderFile.close();
+        // 转换数据流到string
+        fShaderCode = ShaderStream.str();
+        pfShaderCode = const_cast<char *>(fShaderCode.c_str());
+    }
+    catch (std::ifstream::failure &e) {
+        std::cerr << "ERROR: Shader file read failed" << std::endl;
+    }
+
+    // 编译Shader
+    fShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fShader, 1, &pfShaderCode, nullptr);
+    glCompileShader(fShader);
+    checkShaderCompile(fShader, "Fragment shader");
+
+    // Link shader
+    glAttachShader(ID, fShader);
+    glDeleteShader(fShader);
+
+//======== Link shader program ========
     glLinkProgram(ID);
-    // 打印连接错误（如果有的话）
-    glGetProgramiv(ID, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(ID, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-
-    // 删除着色器，它们已经链接到我们的程序中了，已经不再需要了
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
+    checkProgramLink(ID);
 }
+
+Shader::~Shader() {
+    glDeleteProgram(ID);
+}
+
 
 void Shader::use() {
     glUseProgram(ID);
@@ -106,8 +117,37 @@ void Shader::VertexAttribPointer(const std::string &attribute,
     // Specify the layout of the vertex data
     GLint posAttrib = glGetAttribLocation(this->ID, attribute.c_str());
     if (-1 == posAttrib) {
-        std::cout << "ERROR::attribute variable is not active or start with 'gl_'\n" << std::endl;
+        std::cout << "WARNING::attribute variable " << attribute << " is not active\n" << std::endl;
     }
     glVertexAttribPointer(static_cast<GLuint>(posAttrib), size, type, normalized, stride, pointer);
     glEnableVertexAttribArray(static_cast<GLuint>(posAttrib));
 }
+
+void Shader::checkShaderCompile(unsigned int shader, const char *exInfo) {
+    int success;
+    int info_len;
+    // 检查编译错误（如果有的话）
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &info_len);
+        char *pInfo = new char[info_len];
+        glGetShaderInfoLog(shader, info_len, nullptr, pInfo);
+        std::cerr << "Error: Shader compilation failed (" << exInfo << ")\n" << pInfo << std::endl;
+        delete[] pInfo;
+    }
+}
+
+void Shader::checkProgramLink(unsigned int program) {
+    int success;
+    int info_len;
+    // 检查链接错误（如果有的话）
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &info_len);
+        char *pInfo = new char[info_len];
+        glGetProgramInfoLog(program, info_len, nullptr, pInfo);
+        std::cerr << "Error: Shader link failed\n" << pInfo << std::endl;
+        delete[] pInfo;
+    }
+}
+
